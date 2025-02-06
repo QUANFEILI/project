@@ -1,0 +1,2 @@
+/var/spool/slurm/slurmd/job06881/slurm_script: line 13: 310101 Killed                  ./mergesort $size >> $output_file
+slurmstepd: error: Detected 1 oom_kill event in StepId=6881.batch. Some of the step tasks have been OOM Killed.
