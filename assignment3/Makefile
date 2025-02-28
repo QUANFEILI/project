@@ -1,2 +1,10 @@
-all:
-	g++ -std=c++17 -o bfs bfs.cpp -lcurl -I ~/rapidjson/include
+CXX = g++
+CXXFLAGS = -std=c++11 -lcurl -I/path/to/rapidjson/include
+
+all: bfs
+
+bfs: bfs.cpp
+	$(CXX) $(CXXFLAGS) -o bfs bfs.cpp
+
+clean:
+	rm -f bfs
