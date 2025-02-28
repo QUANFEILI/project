@@ -6,18 +6,19 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 
-
+// Callback function to handle the data received from the HTTP request// Callback function to handle the data received from the HTTP request
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* s) {
     size_t newLength = size * nmemb;
     try {
-        s->append((char*)contents, newLength);
+        s->append((char*)contents, newLength);  // Append the received data to the string
     } catch (std::bad_alloc& e) {
 
         return 0;
     }
-    return newLength;
+    return newLength;   // Return the number of bytes processed
 }
 
+// Function to encode a node name for use in a URL (e.g., replace spaces with %20) leaned from the discussion board
 std::string encode_url(const std::string& node) {
     std::string encoded_node;
     for (char ch : node) {
@@ -30,6 +31,7 @@ std::string encode_url(const std::string& node) {
     return encoded_node;
 }
 
+// Function to fetch the neighbors of a given node from the web API
 std::unordered_set<std::string> get_neighbors(const std::string& node) {
     std::unordered_set<std::string> neighbors;
     CURL* curl = curl_easy_init();
@@ -39,9 +41,10 @@ std::unordered_set<std::string> get_neighbors(const std::string& node) {
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         std::string response;
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-        CURLcode res = curl_easy_perform(curl);
+        CURLcode res = curl_easy_perform(curl); // Perform the HTTP request
         if (res == CURLE_OK) {
 
+            // Print the raw API response for debugging
             std::cout << "API Response: " << response << std::endl;
 
             rapidjson::Document doc;
@@ -55,6 +58,7 @@ std::unordered_set<std::string> get_neighbors(const std::string& node) {
                 return neighbors;
             }
             if (doc.HasMember("neighbors")) {
+                // Extract the list of neighbors from the JSON response
                 const rapidjson::Value& neighborsArray = doc["neighbors"];
                 for (rapidjson::SizeType i = 0; i < neighborsArray.Size(); i++) {
                     neighbors.insert(neighborsArray[i].GetString());
@@ -68,6 +72,7 @@ std::unordered_set<std::string> get_neighbors(const std::string& node) {
     return neighbors;
 }
 
+// BFS function to traverse the graph
 std::unordered_set<std::string> bfs(const std::string& start_node, int depth) {
     std::unordered_set<std::string> visited;
     std::queue<std::pair<std::string, int>> queue;
@@ -91,8 +96,9 @@ std::unordered_set<std::string> bfs(const std::string& start_node, int depth) {
     }
 
     return visited;
-}
+}   
 
+// Main function
 int main(int argc, char* argv[]) {
     if (argc != 3) {
         std::cerr << "Usage: " << argv[0] << " <start_node> <depth>" << std::endl;
