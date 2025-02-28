@@ -6,13 +6,13 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 
-// 定义 WriteCallback 函数
+
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* s) {
     size_t newLength = size * nmemb;
     try {
         s->append((char*)contents, newLength);
     } catch (std::bad_alloc& e) {
-        // 处理内存分配错误
+
         return 0;
     }
     return newLength;
@@ -41,7 +41,7 @@ std::unordered_set<std::string> get_neighbors(const std::string& node) {
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
         CURLcode res = curl_easy_perform(curl);
         if (res == CURLE_OK) {
-            // 打印 API 返回的原始数据
+
             std::cout << "API Response: " << response << std::endl;
 
             rapidjson::Document doc;
