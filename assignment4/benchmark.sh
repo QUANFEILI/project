@@ -1,18 +1,25 @@
 #!/bin/bash
-#SBATCH --job-name=bfs_test
+
+#SBATCH --job-name=bfs_graph_traversal
 #SBATCH --partition=Centaurus
-#SBATCH --time=00:10:00
-#SBATCH --mem=2G
+#SBATCH --ntasks=1
+#SBATCH --time=01:00:00
+#SBATCH --mem=10G
 
-make || exit 1
+echo "Compiling programs..."
+make
+if [ $? -ne 0 ]; then
+    echo "Compilation failed!"
+    exit 1
+fi
 
-# Test parallel version：Tom Hanks Depth3
-./par_level_client "Tom Hanks" 3 > par_tom_hanks_3_results.txt 2> par_tom_hanks_3_time.txt
+echo "Running Parallel BFS: Tom Hanks (Depth 3)..."
+/usr/bin/time -f "Execution time: %e seconds" ./par_level_client "Tom Hanks" 3 > par_results_tom_hanks_3.txt 2> par_time_tom_hanks_3.txt
 
-# Test parallel version：Tom Hanks Depth2
-./par_level_client "Tom Hanks" 2 > par_tom_hanks_2_results.txt 2> par_tom_hanks_2_time.txt
+echo "Running Parallel BFS: Tom Hanks (Depth 2)..."
+/usr/bin/time -f "Execution time: %e seconds" ./par_level_client "Tom Hanks" 2 > par_results_tom_hanks_2.txt 2> par_time_tom_hanks_2.txt
 
-# Test serial version：Tom Hanks Depth2
-./level_client "Tom Hanks" 2 > seq_tom_hanks_2_results.txt 2> seq_tom_hanks_2_time.txt
+echo "Running Sequential BFS: Tom Hanks (Depth 2)..."
+/usr/bin/time -f "Execution time: %e seconds" ./level_client "Tom Hanks" 2 > seq_results_tom_hanks_2.txt 2> seq_time_tom_hanks_2.txt
 
-echo "All BFS tasks completed!"
+echo "All tasks completed!"
