@@ -46,7 +46,7 @@ void merge(int * arr, size_t  l, size_t  mid, size_t r) {
 
   size_t i, j, k;
   size_t n = mid - l;
-  std::vector<int> temp(n); // ✅ 本地缓冲区，避免共享冲突
+  std::vector<int> temp(n); // local buffer to avoid shared memory conflicts
 
   // init temp arrays
   for (i=0; i<n; ++i)
