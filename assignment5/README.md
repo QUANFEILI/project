@@ -14,7 +14,6 @@ This project implements a **parallelized N-body gravitational simulator** in C++
 - C++11 or later
 - g++ compiler with OpenMP support
 - Python 3 (optional, for visualization)
-- `plot.py` script (provided with assignment)
 
 ## Compilation
 To compile both versions (serial and parallel), run:
