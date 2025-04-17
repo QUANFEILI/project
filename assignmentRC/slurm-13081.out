@@ -1,0 +1,3 @@
+Compiling programs...
+make: *** No rule to make target 'mergesort_seq.o', needed by 'mergesort_seq'.  Stop.
+Compilation failed!
