@@ -223,7 +223,8 @@ int main(int argc, char* argv[]) {
   
     reset_force(s);
     
-    // parallel nested loop to update all pairwise forces    #pragma omp parallel for collapse(2)
+    // parallel nested loop to update all pairwise forces    
+    #pragma omp parallel for collapse(2)  // because 2 nested loop
     for (size_t i=0; i<s.nbpart; ++i)
       for (size_t j=0; j<s.nbpart; ++j)
 	if (i != j)
