@@ -28,11 +28,12 @@ void checkMergeSortResult (std::vector<int>& arr, size_t n) {
     std::cerr<<"notok"<<std::endl;
 }
 
-void merge(int * arr, size_t  l, size_t  mid, size_t r, int* temp) {
+void merge(int * arr, size_t  l, size_t  mid, size_t r) {
 #if DEBUG
   std::cout<<l<<" "<<mid<<" "<<r<<std::endl;
 #endif
 
+  // short circuits
   if (l == r) return;
   if (r-l == 1) {
     if (arr[l] > arr[r]) {
@@ -45,22 +46,23 @@ void merge(int * arr, size_t  l, size_t  mid, size_t r, int* temp) {
 
   size_t i, j, k;
   size_t n = mid - l;
+  std::vector<int> temp(n); // ✅ 本地缓冲区，避免共享冲突
 
   // init temp arrays
   for (i=0; i<n; ++i)
     temp[i] = arr[l+i];
 
-    i = 0;    // temp left half
-    j = mid;  // right half
-    k = l;    // write to
+  i = 0;    // temp left half
+  j = mid;  // right half
+  k = l;    // write to 
 
-    // merge
+  // merge
   while (i<n && j<=r) {
-     if (temp[i] <= arr[j] ) {
-       arr[k++] = temp[i++];
-     } else {
-       arr[k++] = arr[j++];
-     }
+    if (temp[i] <= arr[j]) {
+      arr[k++] = temp[i++];
+    } else {
+      arr[k++] = arr[j++];
+    }
   }
 
   // exhaust temp
@@ -69,23 +71,21 @@ void merge(int * arr, size_t  l, size_t  mid, size_t r, int* temp) {
   }
 }
 
-void mergesort(int * arr, size_t l, size_t r, int* temp) {
+void mergesort(int * arr, size_t l, size_t r) {
   if (l < r) {
     size_t mid = (l+r)/2;
 
     if ((r - l) > PARALLEL_THRESHOLD) {
-      // Parallel sorting left and right
-      std::thread left_thread(mergesort, arr, l, mid, temp);
-      std::thread right_thread(mergesort, arr, mid+1, r, temp);
+      std::thread left_thread(mergesort, arr, l, mid);
+      std::thread right_thread(mergesort, arr, mid+1, r);
       left_thread.join();
       right_thread.join();
     } else {
-      // sequential execution
-      mergesort(arr, l, mid, temp);
-      mergesort(arr, mid+1, r, temp);
+      mergesort(arr, l, mid);
+      mergesort(arr, mid+1, r);
     }
 
-    merge(arr, l, mid+1, r, temp);
+    merge(arr, l, mid+1, r); 
   }
 }
 
@@ -95,10 +95,9 @@ int main (int argc, char* argv[]) {
     return -1;
   }
 
-  // exhaust temp
   size_t n = atol(argv[1]);
 
-    // get arr data
+  // get arr data
   std::vector<int> arr (n);
   generateMergeSortData (arr, n);
 
@@ -111,9 +110,8 @@ int main (int argc, char* argv[]) {
   // begin timing
   std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
 
-  std::vector<int> temp (n);
   // sort
-  mergesort(&(arr[0]), 0, n-1, &(temp[0]));
+  mergesort(&(arr[0]), 0, n-1);
 
   // end timing
   std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();

@@ -9,6 +9,11 @@ all: mergesort_seq
 mergesort_seq: mergesort_seq.o
 	$(LD) $(LDFLAGS) mergesort_seq.o $(ARCHIVES) -o mergesort_seq
 
+mergesort_parallel: mergesort_parallel.o
+	$(LD) $(LDFLAGS) mergesort_parallel.o $(ARCHIVES) -o mergesort_parallel -pthread
+
+
+
 
 bench: mergesort_seq
 	./queue.sh
