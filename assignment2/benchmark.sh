@@ -1,24 +1,26 @@
 #!/bin/bash
 
-#SBATCH --job-name=nbody_benchmark
+#SBATCH --job-name=bfs_graph_traversal
 #SBATCH --partition=Centaurus
 #SBATCH --ntasks=1
-#SBATCH --time=02:00:00
-#SBATCH --mem=20G
+#SBATCH --time=01:00:00
+#SBATCH --mem=10G
 
 
-g++ -o nbody nbody.cpp
+echo "Compiling BFS C++ program..."
+g++ -o bfs bfs.cpp -I ./rapidjson/include -lcurl
+if [ $? -ne 0 ]; then
+    echo "Compilation failed!"
+    exit 1
+fi
 
-# Running solar system simulation
-echo "Running solar system simulation..."
-/usr/bin/time -f "Time: %e seconds" ./nbody 9 200 5000000 1000 solar_output.tsv > solar_results.txt
+echo "Running BFS: Tom Hanks (Depth 2)..."
+/usr/bin/time -f "Execution time: %e seconds" ./bfs "Tom Hanks" 2 > bfs_results_tom_hanks.txt 2> bfs_time_tom_hanks.txt
 
-# Run 100 particle simulations
-echo "Running 100 particles simulation..."
-/usr/bin/time -f "Time: %e seconds" ./nbody 100 1 10000 100 output_100.tsv > results_100.txt
+echo "Running BFS: Matt Damon (Depth 2)..."
+/usr/bin/time -f "Execution time: %e seconds" ./bfs "Matt Damon" 2 > bfs_results_matt_damon.txt 2> bfs_time_matt_damon.txt
 
-# Run 1000 particle simulations
-echo "Running 1000 particles simulation..."
-/usr/bin/time -f "Time: %e seconds" ./nbody 1000 1 10000 100 output_1000.tsv > results_1000.txt
+echo "Running BFS: Tom Hanks (Depth 3)..."
+/usr/bin/time -f "Execution time: %e seconds" ./bfs "Tom Hanks" 3 > bfs_results_tom_hanks_depth3.txt 2> bfs_time_tom_hanks_depth3.txt
 
-echo "All simulations completed!"
+echo "All BFS tasks completed!"
