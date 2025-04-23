@@ -106,7 +106,7 @@ vector<string> get_neighbors(const string& json_str) {
     return neighbors;
 }
 
- /** // old BFS
+/** // old BFS
  // BFS Traversal Function
 vector<string> bfs(CURL* curl, const string& start, int depth) {
     queue<pair<string, int>> q;
@@ -144,21 +144,21 @@ vector<string> bfs(CURL* curl, const string& start, int depth) {
 
 // BFS Traversal Function
 vector<string> bfs(CURL* curl, const string& start, int depth) {
-    // [REPLACED] Replaced original sequential BFS with concurrent BFS
-
     struct Task {
         string node;
         int level;
-    }; // add the simple task struct for queue
+    };
 
     queue<Task> q;
     mutex q_mtx;
     condition_variable cv;
-    bool finished = false;
 
     unordered_set<string> visited;
     mutex visited_mtx;
     vector<string> result;
+
+    int active_threads = 0;
+    bool done = false;
 
     q.push({start, 0});
     visited.insert(start);
@@ -169,18 +169,21 @@ vector<string> bfs(CURL* curl, const string& start, int depth) {
     for (int i = 0; i < THREADS; ++i) {
         workers.emplace_back([&]() {
             CURL* mycurl = curl_easy_init();
+
             while (true) {
                 Task task;
                 {
                     unique_lock<mutex> lock(q_mtx);
-                    cv.wait(lock, [&]() { return !q.empty() || finished; });
-                    if (q.empty() && finished) break;
+                    cv.wait(lock, [&]() { return !q.empty() || done; });
+                    if (q.empty() && done) break;
                     if (q.empty()) continue;
+
                     task = q.front();
                     q.pop();
+                    active_threads++;
                 }
 
-                if (task.level <= depth) {
+                {
                     lock_guard<mutex> lock(visited_mtx);
                     result.push_back(task.node);
                 }
@@ -203,17 +206,19 @@ vector<string> bfs(CURL* curl, const string& start, int depth) {
                         }
                     }
                 }
+
+                {
+                    lock_guard<mutex> lock(q_mtx);
+                    active_threads--;
+                    if (q.empty() && active_threads == 0) {
+                        done = true;
+                        cv.notify_all();
+                    }
+                }
             }
+
             curl_easy_cleanup(mycurl);
         });
-    }
-
-    {
-        unique_lock<mutex> lock(q_mtx);
-        if (q.empty()) {
-            finished = true;
-            cv.notify_all();
-        }
     }
 
     for (auto& t : workers) t.join();
@@ -254,3 +259,4 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+

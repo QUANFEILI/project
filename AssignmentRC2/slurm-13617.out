@@ -1,0 +1,11 @@
+Compiling sequential BFS program...
+client.cpp:9:10: fatal error: rapidjson/error/error.h: No such file or directory
+    9 | #include "rapidjson/error/error.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+Compiling parallel BFS program...
+client_parallel.cpp:9:10: fatal error: rapidjson/error/error.h: No such file or directory
+    9 | #include "rapidjson/error/error.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+Parallel version compilation failed!

@@ -7,10 +7,10 @@
 #SBATCH --mem=10G
 
 echo "Compiling sequential BFS program..."
-g++ -o client client.cpp -lcurl -pthread -std=c++17
+g++ -o client client.cpp -I rapidjson/include -lcurl -pthread -std=c++17
 
 echo "Compiling parallel BFS program..."
-g++ -o client_parallel client_parallel.cpp -lcurl -pthread -std=c++17
+g++ -o client_parallel client_parallel.cpp -I rapidjson/include -lcurl -pthread -std=c++17
 if [ $? -ne 0 ]; then
     echo "Parallel version compilation failed!"
     exit 1
