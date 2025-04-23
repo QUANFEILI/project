@@ -142,7 +142,7 @@ vector<string> bfs(CURL* curl, const string& start, int depth) {
 }
 **/
 
-// BFS Traversal Function
+// BFS Traversal Function parallel version
 vector<string> bfs(CURL* curl, const string& start, int depth) {
     struct Task {
         string node;
