@@ -4,12 +4,10 @@
 #include <cmath>
 #include <vector>
 #include <string>
-#include <cuda_runtime.h>
+#include <cuda_runtime.h>   // Required for CUDA memory management and kernel execution
 
-double G = 6.674*std::pow(10,-11);
-//double G = 1;
-
-__constant__ double G_device = 6.674e-11;
+double G = 6.674 * std::pow(10, -11);
+// double G = 1;
 
 struct simulation {
   size_t nbpart;
@@ -63,7 +61,7 @@ void random_init(simulation& s) {
   }
 
   return;
-  //normalize velocity (using normalization found on some physicis blog)
+  //normalize velocity (using normalization found on some physics blog)
   double meanmass = 0;
   double meanmassvx = 0;
   double meanmassvy = 0;
@@ -96,7 +94,8 @@ void init_solar(simulation& s) {
   s.mass[NEPTUNE] = 1.024 * std::pow(10, 26);
   s.mass[MOON] = 7.342 * std::pow(10, 22);
 
-  double AU = 1.496 * std::pow(10, 11);
+  // Positions (in meters) and velocities (in m/s)
+  double AU = 1.496 * std::pow(10, 11); // Astronomical Unit
 
   s.x = {0, 0.39*AU, 0.72*AU, 1.0*AU, 1.52*AU, 5.20*AU, 9.58*AU, 19.22*AU, 30.05*AU, 1.0*AU + 3.844*std::pow(10, 8)};
   s.y = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -106,6 +105,55 @@ void init_solar(simulation& s) {
   s.vy = {0, 47870, 35020, 29780, 24130, 13070, 9680, 6800, 5430, 29780 + 1022};
   s.vz = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 }
+
+/*  //old function
+
+/ Astronomical Unit
+void update_force(simulation& s, size_t from, size_t to) {
+  double softening = .1;
+  double dist_sq = std::pow(s.x[from]-s.x[to],2)
+    + std::pow(s.y[from]-s.y[to],2)
+    + std::pow(s.z[from]-s.z[to],2);
+  double F = G * s.mass[from]*s.mass[to]/(dist_sq+softening); //that the strength of the force
+
+  //direction
+  double dx = s.x[from]-s.x[to];
+  double dy = s.y[from]-s.y[to];
+  double dz = s.z[from]-s.z[to];
+  double norm = std::sqrt(dx*dx+dy*dy+dz*dz);
+  
+  dx = dx/norm;
+  dy = dy/norm;
+  dz = dz/norm;
+
+  //apply force
+  s.fx[to] += dx*F;
+  s.fy[to] += dy*F;
+  s.fz[to] += dz*F;
+}
+
+void reset_force(simulation& s) {
+  for (size_t i=0; i<s.nbpart; ++i) {
+    s.fx[i] = 0.;
+    s.fy[i] = 0.;
+    s.fz[i] = 0.;
+  }
+}
+
+void apply_force(simulation& s, size_t i, double dt) {
+  s.vx[i] += s.fx[i]/s.mass[i]*dt;
+  s.vy[i] += s.fy[i]/s.mass[i]*dt;
+  s.vz[i] += s.fz[i]/s.mass[i]*dt;
+}
+
+void update_position(simulation& s, size_t i, double dt) {
+  s.x[i] += s.vx[i]*dt;
+  s.y[i] += s.vy[i]*dt;
+  s.z[i] += s.vz[i]*dt;
+}
+
+*/
+
 
 void dump_state(simulation& s) {
   std::cout<<s.nbpart<<'\t';
@@ -133,8 +181,10 @@ void load_from_file(simulation& s, std::string filename) {
     throw "kaboom";
 }
 
+// CUDA kernel, compute gravitational forces
 __global__ void compute_forces_kernel(
   size_t nbpart,
+  double G,
   const double* mass,
   const double* x, const double* y, const double* z,
   double* fx, double* fy, double* fz
@@ -153,7 +203,7 @@ __global__ void compute_forces_kernel(
     double dz = z[j] - zi;
     double dist_sq = dx*dx + dy*dy + dz*dz + 0.1;
     double dist = sqrt(dist_sq);
-    double F = G_device * m_i * mass[j] / dist_sq;
+    double F = G * m_i * mass[j] / dist_sq;
 
     fxi += F * dx / dist;
     fyi += F * dy / dist;
@@ -165,6 +215,7 @@ __global__ void compute_forces_kernel(
   fz[i] = fzi;
 }
 
+// CUDA kernel,update velocity and position
 __global__ void update_positions_kernel(
   size_t nbpart,
   double dt,
@@ -185,6 +236,8 @@ __global__ void update_positions_kernel(
   z[i] += vz[i] * dt;
 }
 
+
+// main
 int main(int argc, char* argv[]) {
   if (argc != 6) {
     std::cerr
@@ -196,14 +249,16 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  double dt = std::atof(argv[2]); 
+  double dt = std::atof(argv[2]);  //in seconds
   size_t nbstep = std::atol(argv[3]);
   size_t printevery = std::atol(argv[4]);
   int blockSize = std::atoi(argv[5]);
 
   simulation s(1);
+
+  //parse command line
   {
-    size_t nbpart = std::atol(argv[1]);
+    size_t nbpart = std::atol(argv[1]); //return 0 if not a number
     if ( nbpart > 0) {
       s = simulation(nbpart);
       random_init(s);
@@ -220,11 +275,13 @@ int main(int argc, char* argv[]) {
   size_t N = s.nbpart, size = N * sizeof(double);
   double *d_mass, *d_x, *d_y, *d_z, *d_vx, *d_vy, *d_vz, *d_fx, *d_fy, *d_fz;
 
+  // allocate GPU memory (required by assignment, use cudaMalloc)
   cudaMalloc(&d_mass, size);
   cudaMalloc(&d_x, size); cudaMalloc(&d_y, size); cudaMalloc(&d_z, size);
   cudaMalloc(&d_vx, size); cudaMalloc(&d_vy, size); cudaMalloc(&d_vz, size);
   cudaMalloc(&d_fx, size); cudaMalloc(&d_fy, size); cudaMalloc(&d_fz, size);
 
+  // copy data from host to device (as instructed in assignment use cudaMemcpy)
   cudaMemcpy(d_mass, s.mass.data(), size, cudaMemcpyHostToDevice);
   cudaMemcpy(d_x, s.x.data(), size, cudaMemcpyHostToDevice);
   cudaMemcpy(d_y, s.y.data(), size, cudaMemcpyHostToDevice);
@@ -236,8 +293,12 @@ int main(int argc, char* argv[]) {
   int gridSize = (N + blockSize - 1) / blockSize;
 
   for (size_t step = 0; step < nbstep; ++step) {
-    compute_forces_kernel<<<gridSize, blockSize>>>(N, d_mass, d_x, d_y, d_z, d_fx, d_fy, d_fz);
-    update_positions_kernel<<<gridSize, blockSize>>>(N, dt, d_mass, d_x, d_y, d_z, d_vx, d_vy, d_vz, d_fx, d_fy, d_fz);
+    compute_forces_kernel<<<gridSize, blockSize>>>(
+      N, G, d_mass, d_x, d_y, d_z, d_fx, d_fy, d_fz
+    );
+    update_positions_kernel<<<gridSize, blockSize>>>(
+      N, dt, d_mass, d_x, d_y, d_z, d_vx, d_vy, d_vz, d_fx, d_fy, d_fz
+    );
 
     if (step % printevery == 0) {
       cudaMemcpy(s.x.data(), d_x, size, cudaMemcpyDeviceToHost);
@@ -259,3 +320,63 @@ int main(int argc, char* argv[]) {
 
   return 0;
 }
+
+/*  //old main(old man? lol)
+int main(int argc, char* argv[]) {
+  if (argc != 5) {
+    std::cerr
+      <<"usage: "<<argv[0]<<" <input> <dt> <nbstep> <printevery>"<<"\n"
+      <<"input can be:"<<"\n"
+      <<"a number (random initialization)"<<"\n"
+      <<"planet (initialize with solar system)"<<"\n"
+      <<"a filename (load from file in singleline tsv)"<<"\n";
+    return -1;
+  }
+  
+  double dt = std::atof(argv[2]); //in seconds
+  size_t nbstep = std::atol(argv[3]);
+  size_t printevery = std::atol(argv[4]);
+  
+  
+  simulation s(1);
+
+  //parse command line
+  {
+    size_t nbpart = std::atol(argv[1]); //return 0 if not a number
+    if ( nbpart > 0) {
+      s = simulation(nbpart);
+      random_init(s);
+    } else {
+      std::string inputparam = argv[1];
+      if (inputparam == "planet") {
+	init_solar(s);
+      } else{
+	load_from_file(s, inputparam);
+      }
+    }    
+  }
+
+  
+  for (size_t step = 0; step< nbstep; step++) {
+    if (step %printevery == 0)
+      dump_state(s);
+  
+    reset_force(s);
+    for (size_t i=0; i<s.nbpart; ++i)
+      for (size_t j=0; j<s.nbpart; ++j)
+	if (i != j)
+	  update_force(s, i, j);
+
+    for (size_t i=0; i<s.nbpart; ++i) {
+      apply_force(s, i, dt);
+      update_position(s, i, dt);
+    }
+  }
+  
+  //dump_state(s);  
+
+
+  return 0;
+}
+
+*/

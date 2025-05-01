@@ -108,7 +108,7 @@ void init_solar(simulation& s) {
   s.vz = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 }
 
-//meant to update the force that from applies on to
+// Astronomical Unit
 void update_force(simulation& s, size_t from, size_t to) {
   double softening = .1;
   double dist_sq = std::pow(s.x[from]-s.x[to],2)
