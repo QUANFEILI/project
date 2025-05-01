@@ -1,17 +1,32 @@
-CXXFLAGS=-O3
+# === Makefile for CUDA-based N-Body Assignment ===
 
-nbody: nbody.cpp
-	g++ -O3 nbody.cpp -o nbody
+NVCC = nvcc
+NVCC_FLAGS = -O3 -arch=sm_61
+TARGET = nbody_gpu
+SRC = nbody_gpu.cpp
 
-solar.out: nbody
+# Default target
+all: $(TARGET)
+
+# Compile CUDA program
+$(TARGET): $(SRC)
+	$(NVCC) $(NVCC_FLAGS) -o $(TARGET) $(SRC)
+
+# Example: Run solar system test and generate output
+solar.out: $(TARGET)
 	date
-	./nbody planet 200 5000000 10000 > solar.out # maybe a minutes
+	./$(TARGET) planet 200 5000000 10000 256 > solar.out
 	date
 
 solar.pdf: solar.out
-	python3 plot.py solar.out solar.pdf 1000 
+	python3 plot.py solar.out solar.pdf 1000
 
-random.out: nbody
+# Example: Run random test case (1000 particles)
+random.out: $(TARGET)
 	date
-	./nbody 1000 1 10000 100 > random.out # maybe 5 minutes
+	./$(TARGET) 1000 1 10000 100 256 > random.out
 	date
+
+# Clean everything
+clean:
+	rm -f $(TARGET) *.out *.pdf output.log error.log
