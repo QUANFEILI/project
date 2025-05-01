@@ -3,7 +3,7 @@
 NVCC = nvcc
 NVCC_FLAGS = -O3 -arch=sm_61
 TARGET = nbody_gpu
-SRC = nbody_gpu.cpp
+SRC = nbody_gpu.cu
 
 # Default target
 all: $(TARGET)
